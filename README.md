@@ -1,3 +1,45 @@
+**Ringkasan**
+
+Proyek ini adalah aplikasi web untuk manajemen magang yang dibangun dengan kerangka kerja Next.js dan TypeScript. Aplikasi menyediakan fitur otentikasi, dashboard untuk peran berbeda (siswa, guru, dudi), manajemen logbook, dan proses review serta pengumpulan laporan magang.
+
+**Bahasa & Teknologi**
+
+- **Bahasa Pemrograman:** TypeScript
+- **Framework:** Next.js (App Router)
+- **Backend / Database:** Supabase (PostgreSQL)
+- **Styling / Build:** PostCSS
+- **Linting & Config:** ESLint, tsconfig
+
+**Tujuan Proyek**
+
+- **Tujuan utama:** Menyediakan platform untuk memfasilitasi proses magang, meliputi pendaftaran, pencatatan logbook, review oleh pembimbing, dan pelaporan akhir.
+- **Pengguna target:** Siswa magang, guru/pembimbing, dan pihak DUDI (industri mitra).
+
+**Tech Stack**
+
+Berikut ilustrasi arsitektur/tech stack yang digunakan oleh proyek ini:
+
+![Tech Stack](./public/images/tech-stack.svg)
+
+**Diagram Database (Ringkas)**
+
+Diagram berikut menunjukkan tabel inti yang direkomendasikan berdasarkan rute API dan fitur yang terlihat di kode sumber:
+
+![Database Diagram](./public/images/database-diagram.svg)
+
+**Cara Menjalankan (Singkat)**
+
+- **Instalasi dependencies:** `npm install`
+- **Menjalankan dev server:** `npm run dev`
+- **Environment:** Pastikan variabel Supabase (URL & Key) tersedia di `.env.local` atau di pengaturan hosting.
+
+**Struktur Utama (Singkat)**
+
+- **API routes:** `src/app/api/*` — endpoint untuk auth, dashboard, dudi, logbook, magang
+- **Komponen & Layout:** `src/components`, `src/app/*` — halaman dan layout per role
+- **Lib auth & supabase:** `src/lib/auth`, `src/lib/supabase`
+
+Jika Anda mau, saya bisa menambahkan penjelasan lebih rinci tiap endpoint, atau menghasilkan file ERD PNG/SVG lebih detil untuk dokumentasi.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
