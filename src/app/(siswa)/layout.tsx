@@ -37,7 +37,7 @@ const studentMenuItems = [
 
 const dummyUser = {
   name: "Rizky (Siswa)",
-  role: "Siswa Magang",
+  role: "Portal Siswa",
   avatarInitial: "R",
 };
 
