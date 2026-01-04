@@ -34,7 +34,7 @@ export default function Sidebar({ menuItems, user }: SidebarProps) {
                 </div>
                 <div>
                     <h1 className="text-xl font-bold text-gray-800 tracking-tight">SIMNAS</h1>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Sistem Magang</p>
+                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Sistem Pelaporan Magang Siswa SIMNAS</p>
                 </div>
             </div>
 

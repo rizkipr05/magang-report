@@ -6,24 +6,55 @@ import LogoutButton from "@/components/layout/LogoutButton";
 export default function SiswaDashboard() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
-      {/* Header / Welcome Banner */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white shadow-lg">
-        <div>
-          <h1 className="text-3xl font-bold">Selamat Datang, Siswa!</h1>
-          <p className="mt-2 text-blue-100 max-w-xl">
-            Selamat datang di Portal Magang. Pantau aktivitas, cari tempat magang, dan cek status penerimaanmu di sini.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
-          <div className="text-right hidden sm:block">
-            <p className="text-xs text-blue-200">Status Magang</p>
-            <p className="font-semibold text-white">Belum Terdaftar</p>
+      {/* Stats & Graph Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Welcome Card */}
+        <div className="lg:col-span-2 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold">Selamat Datang, Siswa!</h1>
+            <p className="mt-2 text-blue-100 max-w-xl">
+              Selamat datang di Portal Magang. Pantau aktivitas, cari tempat magang, dan cek status penerimaanmu di sini.
+            </p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold">
-            S
+          <div className="absolute right-0 bottom-0 opacity-10">
+            <svg className="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.75l-2.5 1zm0 2.25l-5-2.5-5 2.5 10 5 10-5-5-2.5-5 2.5z" /></svg>
           </div>
         </div>
-      </header>
+
+        {/* Logbook Graph */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-gray-900">Status Logbook</h3>
+            <span className="text-xs text-gray-400">Total Logbook</span>
+          </div>
+
+          <div className="flex-1 flex items-end justify-between gap-4 px-2">
+            {[
+              { label: "Disetujui", count: 1, h: "15%", color: "bg-emerald-500", hoverColor: "group-hover:bg-emerald-600", bgLight: "bg-emerald-50", textColor: "text-emerald-600" },
+              { label: "Pending", count: 0, h: "5%", color: "bg-yellow-500", hoverColor: "group-hover:bg-yellow-600", bgLight: "bg-yellow-50", textColor: "text-yellow-600" },
+              { label: "Ditolak", count: 0, h: "5%", color: "bg-blue-500", hoverColor: "group-hover:bg-blue-600", bgLight: "bg-blue-50", textColor: "text-blue-600" }
+            ].map((item, i) => (
+              <div key={i} className="flex flex-col items-center gap-3 group w-full">
+                <div className="w-full bg-gray-50 rounded-t-md relative h-40 flex items-end overflow-hidden group-hover:bg-gray-100 transition-colors border border-gray-100">
+                  <div
+                    className={`w-full ${item.color} rounded-t-md transition-all duration-500 ${item.hoverColor} relative`}
+                    style={{ height: item.h }}
+                  >
+                  </div>
+                  {/* Tooltip */}
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    {item.count} Logbook
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${item.textColor} mb-1`}>{item.count}</div>
+                  <span className="text-xs font-medium text-gray-600">{item.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions / Navigation Grid */}
       <h2 className="text-xl font-bold text-gray-800">Menu Utama</h2>
