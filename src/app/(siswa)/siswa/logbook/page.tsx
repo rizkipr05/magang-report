@@ -1,23 +1,196 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
-export default function LogbookPage() {
+export default function SiswaLogbookPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Semua");
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Dummy data for student
+  const logbooks = [
+    {
+      id: 1,
+      date: "2024-01-04",
+      image: null,
+      activity: "Mempelajari struktur project dan setup environment",
+      issue: "Tidak ada kendala berarti",
+      status: "Menunggu verifikasi",
+      note: "-",
+    },
+  ];
+
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0 }}>Logbook</h1>
-        <Link href="/siswa/dashboard" style={{ color: "#2563eb" }}>Kembali</Link>
-      </header>
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Logbook Saya</h1>
+          <p className="text-gray-500 mt-1">Kelola dan pantau status catatan harian magangmu.</p>
+        </div>
+        <div className="flex gap-3">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm shadow-sm">
+            + Buat Logbook
+          </button>
+        </div>
+      </div>
 
-      <main style={{ marginTop: 20 }}>
-        <p>Catatan harian kegiatan magang.</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">Total Logbook</h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">1</p>
+          <p className="text-sm text-gray-500 mt-1">Total catatan dibuat</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <h3 className="text-yellow-600 text-sm font-medium">Menunggu</h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">1</p>
+          <p className="text-sm text-gray-500 mt-1">Sedang diperiksa</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <h3 className="text-green-600 text-sm font-medium">Terverifikasi</h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+          <p className="text-sm text-gray-500 mt-1">Sudah disetujui</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <h3 className="text-red-600 text-sm font-medium">Revisi</h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+          <p className="text-sm text-gray-500 mt-1">Perlu perbaikan</p>
+        </div>
+      </div>
 
-        <div style={{ marginTop: 12 }}>
-          <div style={{ padding: 12, borderRadius: 8, background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-            <h4 style={{ margin: 0 }}>2026-01-04</h4>
-            <p style={{ marginTop: 8, color: "#4b5563" }}>Mempelajari struktur proyek, menyiapkan environment.</p>
+      {/* Filters & Table */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        {/* Filters */}
+        <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50">
+          <div className="w-full sm:max-w-md relative">
+            <input
+              type="text"
+              placeholder="Cari kegiatan atau kendala..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <svg
+              className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          <div className="flex gap-4 items-center w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 whitespace-nowrap">Status:</span>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="Semua">Semua</option>
+                <option value="Menunggu">Menunggu</option>
+                <option value="Terverifikasi">Terverifikasi</option>
+                <option value="Perbaikan">Perbaikan</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 whitespace-nowrap">Per halaman:</span>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
           </div>
         </div>
-      </main>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4">TANGGAL & FOTO</th>
+                <th className="px-6 py-4">KEGIATAN & KENDALA</th>
+                <th className="px-6 py-4">STATUS</th>
+                <th className="px-6 py-4">CATATAN GURU</th>
+                <th className="px-6 py-4 text-right">AKSI</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {logbooks.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center justify-center p-4">
+                      <svg className="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      <p className="text-lg font-medium text-gray-900">Belum ada logbook</p>
+                      <p className="text-gray-500 max-w-sm mt-1">Mulai catat kegiatan magang harianmu sekarang.</p>
+                      <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm shadow-sm">
+                        + Buat Logbook Baru
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                logbooks.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 align-top w-48">
+                      <div className="font-medium text-gray-900">{log.date}</div>
+                      <div className="mt-2 w-24 h-16 bg-gray-100 rounded border border-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                        {log.image ? "Foto" : "No img"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 align-top max-w-xs">
+                      <div className="font-medium text-gray-900 mb-1">Kegiatan:</div>
+                      <div className="text-gray-600 mb-3">{log.activity}</div>
+                      <div className="font-medium text-gray-900 mb-1">Kendala:</div>
+                      <div className="text-gray-600">{log.issue}</div>
+                    </td>
+                    <td className="px-6 py-4 align-top">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${log.status === "Telah terverifikasi"
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : log.status === "Perlu perbaikan"
+                            ? "bg-red-50 text-red-700 border-red-200"
+                            : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          }`}
+                      >
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 align-top text-gray-600 italic">
+                      {log.note || "-"}
+                    </td>
+                    <td className="px-6 py-4 align-top text-right">
+                      <button className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Info */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-sm text-gray-500">
+          <span>Menampilkan 1 sampai {logbooks.length} dari {logbooks.length} entri</span>
+          <div className="flex gap-1">
+            <button className="px-3 py-1 border rounded bg-white disabled:opacity-50" disabled>Previous</button>
+            <button className="px-3 py-1 border rounded bg-white disabled:opacity-50" disabled>Next</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
