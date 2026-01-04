@@ -64,7 +64,7 @@ export default function LoginPage() {
 
       {msg && <p style={{ marginTop: 12, color: "crimson" }}>{msg}</p>}
       <p style={{ marginTop: 12, fontSize: 12, opacity: 0.8 }}>
-        Pastikan tabel <b>users</b> di Supabase punya kolom: id, email, role, name.
+        Pastikan tabel <b>users</b> di Supabase punya kolom: id, email, role, name. Jika belum, silakan <a href="/register" style={{ color: "blue", textDecoration: "underline" }}>daftar sebagai siswa</a> terlebih dahulu.
       </p>
     </div>
   );
