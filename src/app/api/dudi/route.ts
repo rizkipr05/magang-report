@@ -9,11 +9,17 @@ export async function GET(req: Request) {
   }
 
   const supabase = supabaseServer(token);
+  const url = new URL(req.url);
+  const search = url.searchParams.get("search")?.trim();
 
-  const { data, error } = await supabase
-    .from("dudi")
-    .select("id,name,address,bidang,contact_name,contact_phone,created_at,updated_at")
-    .order("created_at", { ascending: false });
+  let query = supabase.from("dudi").select("*").order("created_at", { ascending: false });
+  if (search) {
+    query = query.or(
+      `name.ilike.%${search}%,bidang.ilike.%${search}%,address.ilike.%${search}%`
+    );
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ message: error.message }, { status: 400 });

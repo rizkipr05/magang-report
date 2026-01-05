@@ -67,25 +67,35 @@ export async function GET(req: Request) {
   const to = sunday.toISOString().slice(0, 10);
 
   // 2) statistik logbook siswa (untuk magang ini)
-  const [{ count: total_logbook }, { count: draft }, { count: submitted }, { count: reviewed }] =
-    await Promise.all([
-      supabase.from("logbooks").select("id", { count: "exact", head: true }).eq("magang_id", magangId),
-      supabase
-        .from("logbooks")
-        .select("id", { count: "exact", head: true })
-        .eq("magang_id", magangId)
-        .eq("status", "draft"),
-      supabase
-        .from("logbooks")
-        .select("id", { count: "exact", head: true })
-        .eq("magang_id", magangId)
-        .eq("status", "submitted"),
-      supabase
-        .from("logbooks")
-        .select("id", { count: "exact", head: true })
-        .eq("magang_id", magangId)
-        .eq("status", "reviewed"),
-    ]);
+  const [
+    { count: total_logbook },
+    { count: draft },
+    { count: submitted },
+    { count: reviewed },
+    { count: rejected },
+  ] = await Promise.all([
+    supabase.from("logbooks").select("id", { count: "exact", head: true }).eq("magang_id", magangId),
+    supabase
+      .from("logbooks")
+      .select("id", { count: "exact", head: true })
+      .eq("magang_id", magangId)
+      .eq("status", "draft"),
+    supabase
+      .from("logbooks")
+      .select("id", { count: "exact", head: true })
+      .eq("magang_id", magangId)
+      .eq("status", "submitted"),
+    supabase
+      .from("logbooks")
+      .select("id", { count: "exact", head: true })
+      .eq("magang_id", magangId)
+      .eq("status", "reviewed"),
+    supabase
+      .from("logbooks")
+      .select("id", { count: "exact", head: true })
+      .eq("magang_id", magangId)
+      .eq("status", "rejected"),
+  ]);
 
   // 3) jumlah logbook minggu ini
   const { count: minggu_ini } = await supabase
@@ -114,6 +124,7 @@ export async function GET(req: Request) {
         draft: draft ?? 0,
         submitted: submitted ?? 0,
         reviewed: reviewed ?? 0,
+        rejected: rejected ?? 0,
         minggu_ini: minggu_ini ?? 0,
       },
       last_logbooks: last_logbooks ?? [],

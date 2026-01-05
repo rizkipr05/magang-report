@@ -1,4 +1,7 @@
+"use client";
+
 import Sidebar from "@/components/layout/Sidebar";
+import { useUserProfile } from "@/lib/supabase/hooks";
 
 const studentMenuItems = [
   {
@@ -35,18 +38,31 @@ const studentMenuItems = [
   },
 ];
 
-const dummyUser = {
-  name: "Rizky (Siswa)",
-  role: "Portal Siswa",
-  avatarInitial: "R",
-};
-
 export default function SiswaLayout({ children }: { children: React.ReactNode }) {
+  const { profile, loading } = useUserProfile();
+
+  // Prepare user data for sidebar
+  const userData = profile ? {
+    name: profile.name || "Siswa",
+    role: profile.role === "siswa" ? "Portal Siswa" : profile.role,
+    avatarInitial: (profile.name || "S").charAt(0).toUpperCase(),
+  } : {
+    name: "Loading...",
+    role: "Portal Siswa",
+    avatarInitial: "...",
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar menuItems={studentMenuItems} user={dummyUser} />
+      <Sidebar menuItems={studentMenuItems} user={userData} />
       <main className="flex-1 ml-64 p-8">
-        {children}
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          children
+        )}
       </main>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,13 +31,28 @@ export default function LoginPage() {
         return;
       }
 
+      // Sync session to Supabase client storage
+      if (data.session?.access_token && data.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
+      // Redirect based on role
       const role = data?.user?.role;
-      if (role === "siswa") router.replace("/siswa/dashboard");
-      else if (role === "guru") router.replace("/guru/dashboard");
-      else router.replace("/login");
+      if (role === "siswa") {
+        router.push("/siswa/dashboard");
+        // Force page reload to ensure session is loaded
+        window.location.href = "/siswa/dashboard";
+      } else if (role === "guru") {
+        router.push("/guru/dashboard");
+        window.location.href = "/guru/dashboard";
+      } else {
+        router.replace("/login");
+      }
     } catch {
       setMsg("Terjadi error. Periksa koneksi internet Anda.");
-    } finally {
       setLoading(false);
     }
   }

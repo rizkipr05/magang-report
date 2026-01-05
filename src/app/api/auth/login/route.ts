@@ -35,10 +35,10 @@ export async function POST(req: Request) {
     );
   }
 
+  // Return session data - client will handle storage
   return NextResponse.json({
     message: "Login sukses",
     user: userRow,
-    // token ini berguna kalau mau client simpan sendiri
     session: authData.session,
   });
 }
