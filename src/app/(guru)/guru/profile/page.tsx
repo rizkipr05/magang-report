@@ -1,14 +1,42 @@
 "use client";
 
+import { useUserProfile } from "@/lib/supabase/hooks";
+
 export default function GuruProfilePage() {
-    const user = {
-        fullName: "Pak Budi",
-        email: "budi@sekolah.sch.id",
-        role: "Guru Pembimbing",
-        nip: "19800101 200501 1 001",
-        mapel: "Pemrograman Web & Perangkat Bergerak",
-        telepon: "081987654321",
-    };
+    const { profile, loading, error } = useUserProfile();
+
+    if (loading) {
+        return (
+            <div className="max-w-5xl mx-auto space-y-6">
+                <div className="bg-gradient-to-r from-emerald-600 to-emerald-800 rounded-2xl p-8 text-white shadow-lg animate-pulse">
+                    <div className="h-8 bg-emerald-700 rounded w-48 mb-2"></div>
+                    <div className="h-4 bg-emerald-700 rounded w-64"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-64 animate-pulse"></div>
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-64 animate-pulse"></div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !profile) {
+        return (
+            <div className="max-w-5xl mx-auto space-y-6">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Profil</h2>
+                    <p className="text-red-600 mb-6">
+                        {error ? `Error: ${error}` : "Anda belum login atau session telah berakhir."}
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
@@ -32,18 +60,18 @@ export default function GuruProfilePage() {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Nama Lengkap</label>
-                            <p className="text-gray-900 font-medium text-lg">{user.fullName}</p>
+                            <p className="text-gray-900 font-medium text-lg">{profile.name || "-"}</p>
                         </div>
 
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">NIP</label>
-                            <p className="text-gray-900 font-medium">{user.nip}</p>
+                            <p className="text-gray-900 font-medium">{profile.nip || "-"}</p>
                         </div>
 
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
-                                {user.role}
+                                {profile.role === "guru" ? "Guru Pembimbing" : profile.role}
                             </span>
                         </div>
                     </div>
@@ -61,14 +89,14 @@ export default function GuruProfilePage() {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mata Pelajaran</label>
-                            <p className="text-gray-900 font-medium">{user.mapel}</p>
+                            <p className="text-gray-900 font-medium">{profile.mapel || "-"}</p>
                         </div>
 
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
                             <div className="flex items-center gap-2">
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
-                                <p className="text-gray-900 font-medium">{user.email}</p>
+                                <p className="text-gray-900 font-medium">{profile.email || "-"}</p>
                             </div>
                         </div>
 
@@ -76,7 +104,7 @@ export default function GuruProfilePage() {
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Nomor Telepon</label>
                             <div className="flex items-center gap-2">
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                <p className="text-gray-900 font-medium">{user.telepon}</p>
+                                <p className="text-gray-900 font-medium">{profile.telepon || "-"}</p>
                             </div>
                         </div>
                     </div>

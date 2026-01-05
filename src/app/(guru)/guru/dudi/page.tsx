@@ -1,76 +1,126 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+
+type DudiItem = {
+    id: string;
+    name: string;
+    field?: string | null;
+    location?: string | null;
+    pic?: string | null;
+    quotaTotal?: number | null;
+    quotaFilled?: number | null;
+    siswaAktif: string[];
+};
+
+type MagangItem = {
+    status?: string | null;
+    dudi_id?: string | null;
+    siswa?: { name?: string | null };
+};
 
 export default function GuruDudiPage() {
     const [search, setSearch] = useState("");
+    const [dudis, setDudis] = useState<DudiItem[]>([]);
+    const [magang, setMagang] = useState<MagangItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const dudis = [
-        {
-            id: 1,
-            name: "DOT Indonesia",
-            field: "Teknologi Informasi",
-            location: "Malang",
-            pic: "Bu Nungki",
-            quotaTotal: 10,
-            quotaFilled: 3,
-            siswaAktif: ["Rizky", "Andi", "Budi"],
-        },
-        {
-            id: 2,
-            name: "UBIG",
-            field: "Teknologi Informasi",
-            location: "Tasik Madu",
-            pic: "Bu Fajar",
-            quotaTotal: 10,
-            quotaFilled: 2,
-            siswaAktif: ["Siti", "Dewi"],
-        },
-        {
-            id: 3,
-            name: "Nortish Academy",
-            field: "Pendidikan & IT",
-            location: "Jl. Haji Romo",
-            pic: "Bu Ririn",
-            quotaTotal: 10,
-            quotaFilled: 5,
-            siswaAktif: ["Ahmad", "Fatimah", "Joko", "Lina", "Rudi"],
-        },
-        {
-            id: 4,
-            name: "3-PM Solution",
-            field: "Software House",
-            location: "Perum Araya Barat No 15b",
-            pic: "Pak Rendy",
-            quotaTotal: 10,
-            quotaFilled: 4,
-            siswaAktif: ["Nina", "Oscar", "Putri", "Qori"],
-        },
-        {
-            id: 5,
-            name: "Alfahuma Malang",
-            field: "Digital Agency",
-            location: "Jl. Hamid Rusdi blok M",
-            pic: "Pak Kus",
-            quotaTotal: 10,
-            quotaFilled: 2,
-            siswaAktif: ["Tono", "Umar"],
-        },
-        {
-            id: 6,
-            name: "Telkom Indonesia",
-            field: "Telekomunikasi",
-            location: "Jl. Ahmad Yani, Malang",
-            pic: "Pak Budi",
-            quotaTotal: 5,
-            quotaFilled: 2,
-            siswaAktif: ["Vina", "Wawan"],
-        },
-    ];
+    const getAuthHeaders = async (): Promise<Record<string, string>> => {
+        const { data } = await supabase.auth.getSession();
+        const token = data?.session?.access_token;
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
 
-    const filteredDudis = dudis.filter((dudi) =>
+    const isActiveStatus = (status?: string | null) => {
+        const normalized = (status || "").toLowerCase();
+        if (!normalized) return true;
+        return ["aktif", "active", "ongoing", "berjalan"].includes(normalized);
+    };
+
+    useEffect(() => {
+        let active = true;
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const headers = await getAuthHeaders();
+
+                const dudiUrl = new URL("/api/dudi", window.location.origin);
+                if (search) dudiUrl.searchParams.set("search", search);
+
+                const [dudiRes, magangRes] = await Promise.all([
+                    fetch(dudiUrl.toString(), { headers }),
+                    fetch("/api/magang", { headers }),
+                ]);
+
+                if (!dudiRes.ok) {
+                    const payload = await dudiRes.json().catch(() => null);
+                    throw new Error(payload?.message || "Gagal memuat data DUDI");
+                }
+
+                const dudiPayload = await dudiRes.json();
+                const dudiItems = Array.isArray(dudiPayload?.data) ? dudiPayload.data : [];
+
+                const magangItems = magangRes.ok
+                    ? ((await magangRes.json())?.data as MagangItem[]) ?? []
+                    : [];
+
+                if (!active) return;
+
+                setMagang(magangItems);
+                setDudis(
+                    dudiItems.map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        field: item.bidang ?? item.field ?? null,
+                        location: item.address ?? item.location ?? null,
+                        pic: item.contact_name ?? item.pic ?? null,
+                        quotaTotal: item.quota_total ?? 10,
+                        quotaFilled: item.quota_filled ?? 0,
+                        siswaAktif: [],
+                    }))
+                );
+            } catch (err: any) {
+                if (!active) return;
+                setError(err.message || "Gagal memuat data DUDI");
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+
+        fetchData();
+        return () => {
+            active = false;
+        };
+    }, [search]);
+
+    const enrichedDudis = useMemo(() => {
+        const map = new Map<string, { siswa: Set<string>; filled: number }>();
+
+        magang.forEach((item) => {
+            if (!item?.dudi_id) return;
+            if (!isActiveStatus(item.status)) return;
+            const entry = map.get(item.dudi_id) ?? { siswa: new Set<string>(), filled: 0 };
+            if (item.siswa?.name) entry.siswa.add(item.siswa.name);
+            entry.filled += 1;
+            map.set(item.dudi_id, entry);
+        });
+
+        return dudis.map((dudi) => {
+            const entry = map.get(dudi.id);
+            return {
+                ...dudi,
+                siswaAktif: entry ? Array.from(entry.siswa) : [],
+                quotaFilled: entry ? entry.filled : dudi.quotaFilled ?? 0,
+            };
+        });
+    }, [dudis, magang]);
+
+    const filteredDudis = enrichedDudis.filter((dudi) =>
         dudi.name.toLowerCase().includes(search.toLowerCase()) ||
-        dudi.field.toLowerCase().includes(search.toLowerCase())
+        (dudi.field || "").toLowerCase().includes(search.toLowerCase())
     );
 
     return (
@@ -97,12 +147,26 @@ export default function GuruDudiPage() {
                 </div>
             </div>
 
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+                    {error}
+                </div>
+            )}
+
             {/* DUDI List */}
-            {filteredDudis.length > 0 ? (
+            {loading ? (
+                <div className="grid grid-cols-1 gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 h-40 animate-pulse"></div>
+                    ))}
+                </div>
+            ) : filteredDudis.length > 0 ? (
                 <div className="space-y-4">
                     {filteredDudis.map((dudi) => {
-                        const percentage = (dudi.quotaFilled / dudi.quotaTotal) * 100;
-                        const slotsLeft = dudi.quotaTotal - dudi.quotaFilled;
+                        const quotaTotal = dudi.quotaTotal ?? 10;
+                        const quotaFilled = dudi.quotaFilled ?? 0;
+                        const percentage = quotaTotal > 0 ? (quotaFilled / quotaTotal) * 100 : 0;
+                        const slotsLeft = quotaTotal - quotaFilled;
 
                         return (
                             <div key={dudi.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -115,16 +179,16 @@ export default function GuruDudiPage() {
                                             </div>
                                             <div className="flex-1">
                                                 <h3 className="text-lg font-bold text-gray-900">{dudi.name}</h3>
-                                                <p className="text-sm text-emerald-600 font-medium mb-2">{dudi.field}</p>
+                                                <p className="text-sm text-emerald-600 font-medium mb-2">{dudi.field || "-"}</p>
 
                                                 <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                                                     <div className="flex items-center gap-1">
                                                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                        <span>{dudi.location}</span>
+                                                        <span>{dudi.location || "-"}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                                        <span>PIC: {dudi.pic}</span>
+                                                        <span>PIC: {dudi.pic || "-"}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -134,7 +198,7 @@ export default function GuruDudiPage() {
                                         <div className="md:w-64">
                                             <div className="flex justify-between text-xs font-semibold mb-1">
                                                 <span className="text-gray-500">Kuota Terisi</span>
-                                                <span className="text-gray-700">{dudi.quotaFilled}/{dudi.quotaTotal}</span>
+                                                <span className="text-gray-700">{quotaFilled}/{quotaTotal}</span>
                                             </div>
                                             <div className="w-full bg-gray-100 rounded-full h-2 mb-1">
                                                 <div className="bg-emerald-600 h-2 rounded-full" style={{ width: `${percentage}%` }}></div>

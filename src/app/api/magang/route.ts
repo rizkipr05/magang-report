@@ -20,8 +20,8 @@ export async function GET(req: Request) {
     .select(
       `
       id, siswa_id, guru_id, dudi_id, start_date, end_date, status, created_at, updated_at,
-      dudi:dudi_id (id, name),
-      siswa:siswa_id (id, name, email, role),
+      dudi:dudi_id (id, name, bidang),
+      siswa:siswa_id (id, name, email, role, nis, kelas, jurusan),
       guru:guru_id (id, name, email, role)
     `
     )

@@ -1,16 +1,146 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
+import { useUserProfile } from "@/lib/supabase/hooks";
+
+type LogbookItem = {
+  status?: string | null;
+};
 
 export default function GuruDashboard() {
+  const { profile } = useUserProfile();
+  const [stats, setStats] = useState({
+    totalSiswa: 0,
+    magangAktif: 0,
+    pendingReview: 0,
+    totalDudi: 0,
+  });
+  const [logbookCounts, setLogbookCounts] = useState({
+    reviewed: 0,
+    submitted: 0,
+    rejected: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const graphItems = useMemo(() => {
+    const total = logbookCounts.reviewed + logbookCounts.submitted + logbookCounts.rejected;
+    const percentage = (count: number) =>
+      total > 0 ? `${Math.max(5, Math.round((count / total) * 100))}%` : "5%";
+    return [
+      {
+        label: "Disetujui",
+        count: logbookCounts.reviewed,
+        h: percentage(logbookCounts.reviewed),
+        color: "bg-emerald-500",
+        hoverColor: "group-hover:bg-emerald-600",
+        textColor: "text-emerald-600",
+      },
+      {
+        label: "Pending",
+        count: logbookCounts.submitted,
+        h: percentage(logbookCounts.submitted),
+        color: "bg-yellow-500",
+        hoverColor: "group-hover:bg-yellow-600",
+        textColor: "text-yellow-600",
+      },
+      {
+        label: "Revisi",
+        count: logbookCounts.rejected,
+        h: percentage(logbookCounts.rejected),
+        color: "bg-red-500",
+        hoverColor: "group-hover:bg-red-600",
+        textColor: "text-red-600",
+      },
+    ];
+  }, [logbookCounts]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const headers = await getAuthHeaders();
+
+        const [dashboardRes, dudiRes, logbookRes] = await Promise.all([
+          fetch("/api/dashboard/guru", { headers }),
+          fetch("/api/dudi", { headers }),
+          fetch("/api/logbook", { headers }),
+        ]);
+
+        if (!dashboardRes.ok) {
+          const payload = await dashboardRes.json().catch(() => null);
+          throw new Error(payload?.message || "Gagal memuat dashboard guru");
+        }
+        const dashboardPayload = await dashboardRes.json();
+        const dashboardStats = dashboardPayload?.data?.stats ?? {};
+
+        let totalDudi = 0;
+        if (dudiRes.ok) {
+          const dudiPayload = await dudiRes.json();
+          totalDudi = Array.isArray(dudiPayload?.data) ? dudiPayload.data.length : 0;
+        }
+
+        let counts = { reviewed: 0, submitted: 0, rejected: 0 };
+        if (logbookRes.ok) {
+          const logbookPayload = await logbookRes.json();
+          const items = Array.isArray(logbookPayload?.data) ? logbookPayload.data : [];
+          counts = items.reduce(
+            (acc: { reviewed: number; submitted: number; rejected: number }, item: LogbookItem) => {
+              const status = (item.status || "").toLowerCase();
+              if (status === "reviewed") acc.reviewed += 1;
+              if (status === "submitted") acc.submitted += 1;
+              if (status === "rejected") acc.rejected += 1;
+              return acc;
+            },
+            { reviewed: 0, submitted: 0, rejected: 0 }
+          );
+        }
+
+        if (!active) return;
+        setStats({
+          totalSiswa: dashboardStats.total_magang ?? 0,
+          magangAktif: dashboardStats.magang_aktif ?? 0,
+          pendingReview: dashboardStats.pending_review ?? 0,
+          totalDudi,
+        });
+        setLogbookCounts(counts);
+      } catch (err: any) {
+        if (!active) return;
+        setError(err.message || "Gagal memuat data dashboard");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
       {/* Stats & Graph Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Welcome Card */}
         <div className="lg:col-span-2 bg-gradient-to-r from-emerald-600 to-emerald-800 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
           <div className="relative z-10">
-            <h1 className="text-3xl font-bold">Selamat Datang, Guru!</h1>
+            <h1 className="text-3xl font-bold">Selamat Datang, {profile?.name || "Guru"}!</h1>
             <p className="mt-2 text-emerald-100 max-w-xl">
               Pantau aktivitas siswa bimbingan, verifikasi logbook, dan kelola data magang dengan mudah.
             </p>
@@ -24,34 +154,36 @@ export default function GuruDashboard() {
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-gray-900">Verifikasi Logbook</h3>
-            <span className="text-xs text-gray-400">Total</span>
+            <span className="text-xs text-gray-400">{loading ? "..." : "Total"}</span>
           </div>
 
-          <div className="flex-1 flex items-end justify-between gap-4 px-2">
-            {[
-              { label: "Disetujui", count: 45, h: "90%", color: "bg-emerald-500", hoverColor: "group-hover:bg-emerald-600", textColor: "text-emerald-600" },
-              { label: "Pending", count: 12, h: "40%", color: "bg-yellow-500", hoverColor: "group-hover:bg-yellow-600", textColor: "text-yellow-600" },
-              { label: "Revisi", count: 3, h: "15%", color: "bg-red-500", hoverColor: "group-hover:bg-red-600", textColor: "text-red-600" }
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col items-center gap-3 group w-full">
-                <div className="w-full bg-gray-50 rounded-t-md relative h-40 flex items-end overflow-hidden group-hover:bg-gray-100 transition-colors border border-gray-100">
-                  <div
-                    className={`w-full ${item.color} rounded-t-md transition-all duration-500 ${item.hoverColor}`}
-                    style={{ height: item.h }}
-                  >
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-end justify-between gap-4 px-2">
+              {graphItems.map((item, i) => (
+                <div key={i} className="flex flex-col items-center gap-3 group w-full">
+                  <div className="w-full bg-gray-50 rounded-t-md relative h-40 flex items-end overflow-hidden group-hover:bg-gray-100 transition-colors border border-gray-100">
+                    <div
+                      className={`w-full ${item.color} rounded-t-md transition-all duration-500 ${item.hoverColor}`}
+                      style={{ height: item.h }}
+                    >
+                    </div>
+                    {/* Tooltip */}
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {item.count} Logbook
+                    </div>
                   </div>
-                  {/* Tooltip */}
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    {item.count} Logbook
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${item.textColor} mb-1`}>{item.count}</div>
+                    <span className="text-xs font-medium text-gray-600">{item.label}</span>
                   </div>
                 </div>
-                <div className="text-center">
-                  <div className={`text-2xl font-bold ${item.textColor} mb-1`}>{item.count}</div>
-                  <span className="text-xs font-medium text-gray-600">{item.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -64,7 +196,7 @@ export default function GuruDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Total Siswa</p>
-              <p className="text-2xl font-bold text-gray-900">24</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalSiswa}</p>
             </div>
           </div>
         </div>
@@ -76,7 +208,7 @@ export default function GuruDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Aktif Magang</p>
-              <p className="text-2xl font-bold text-gray-900">18</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.magangAktif}</p>
             </div>
           </div>
         </div>
@@ -88,7 +220,7 @@ export default function GuruDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Perlu Review</p>
-              <p className="text-2xl font-bold text-gray-900">12</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.pendingReview}</p>
             </div>
           </div>
         </div>
@@ -100,7 +232,7 @@ export default function GuruDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Total DUDI</p>
-              <p className="text-2xl font-bold text-gray-900">6</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalDudi}</p>
             </div>
           </div>
         </div>
