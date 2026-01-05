@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
 type MagangItem = {
@@ -222,12 +223,18 @@ export default function GuruMagangPage() {
 
                 {/* Actions */}
                 <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 grid grid-cols-2 gap-3">
-                  <button className="py-2 px-3 text-sm font-medium text-emerald-600 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors">
+                  <Link
+                    href={`/guru/magang/${magang.id}`}
+                    className="py-2 px-3 text-sm font-medium text-emerald-600 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors text-center"
+                  >
                     Lihat Detail
-                  </button>
-                  <button className="py-2 px-3 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                  </Link>
+                  <Link
+                    href="/guru/logbook"
+                    className="py-2 px-3 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors text-center"
+                  >
                     Review
-                  </button>
+                  </Link>
                 </div>
               </div>
             );
