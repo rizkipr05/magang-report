@@ -162,23 +162,44 @@ export function useLogbookStats() {
 
 // Hook to fetch DUDI list
 export function useDudiList(searchQuery: string = "") {
+    const { user, loading: authLoading } = useSupabaseUser();
     const [dudis, setDudis] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            setDudis([]);
+            setLoading(false);
+            setError("Sesi belum tersedia. Silakan login ulang.");
+            return;
+        }
+
         const fetchDudis = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 const url = new URL("/api/dudi", window.location.origin);
                 if (searchQuery) url.searchParams.set("search", searchQuery);
 
                 const { data: sessionData } = await supabase.auth.getSession();
-                const token = sessionData?.session?.access_token;
+                let token: string | undefined = sessionData?.session?.access_token;
+                if (!token) {
+                    const { data: refreshed } = await supabase.auth.refreshSession();
+                    token = refreshed?.session?.access_token;
+                }
+                if (!token) {
+                    throw new Error("Sesi tidak valid. Silakan login ulang.");
+                }
 
                 const res = await fetch(url.toString(), {
-                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                    headers: { Authorization: `Bearer ${token}` },
                 });
-                if (!res.ok) throw new Error("Gagal memuat data DUDI");
+                if (!res.ok) {
+                    const errPayload = await res.json().catch(() => null);
+                    throw new Error(errPayload?.message || "Gagal memuat data DUDI");
+                }
 
                 const payload = await res.json();
                 const items = Array.isArray(payload?.data) ? payload.data : [];
@@ -195,17 +216,18 @@ export function useDudiList(searchQuery: string = "") {
                 }));
 
                 setDudis(mapped);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Error fetching DUDI:", err);
+                setError(err?.message || "Gagal memuat data DUDI");
             } finally {
                 setLoading(false);
             }
         };
 
         fetchDudis();
-    }, [searchQuery]);
+    }, [searchQuery, user, authLoading]);
 
-    return { dudis, loading };
+    return { dudis, loading, error };
 }
 
 // Hook to fetch student logbook entries

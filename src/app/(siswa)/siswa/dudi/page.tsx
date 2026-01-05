@@ -5,7 +5,7 @@ import { useDudiList } from "@/lib/supabase/hooks";
 
 export default function DudiPage() {
   const [search, setSearch] = useState("");
-  const { dudis, loading } = useDudiList(search);
+  const { dudis, loading, error } = useDudiList(search);
 
   if (loading) {
     return (
@@ -30,6 +30,12 @@ export default function DudiPage() {
         <h1 className="text-2xl font-bold text-gray-900">DUDI (Dunia Usaha & Industri)</h1>
         <p className="text-gray-500">Cari dan lamar tempat magang yang sesuai dengan minatmu.</p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">

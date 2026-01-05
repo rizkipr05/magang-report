@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
 type LogbookItem = {
@@ -30,15 +31,6 @@ export default function SiswaLogbookPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [magangId, setMagangId] = useState<string | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    date: "",
-    activity: "",
-    start_time: "",
-    end_time: "",
-    attachment_url: "",
-  });
 
   const stats = useMemo(() => {
     const total = logbooks.length;
@@ -103,77 +95,6 @@ export default function SiswaLogbookPage() {
       setError(err.message || "Gagal memuat logbook");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setForm({
-      date: "",
-      activity: "",
-      start_time: "",
-      end_time: "",
-      attachment_url: "",
-    });
-    setEditingId(null);
-  };
-
-  const openCreate = () => {
-    resetForm();
-    setIsFormOpen(true);
-  };
-
-  const openEdit = (log: LogbookItem) => {
-    setEditingId(log.id);
-    setForm({
-      date: log.date || "",
-      activity: log.activity || "",
-      start_time: log.start_time || "",
-      end_time: log.end_time || "",
-      attachment_url: log.attachment_url || "",
-    });
-    setIsFormOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!magangId) {
-      setError("Anda belum memiliki data magang.");
-      return;
-    }
-    if (!form.date || !form.activity.trim()) {
-      setError("Tanggal dan kegiatan wajib diisi.");
-      return;
-    }
-    try {
-      setError(null);
-      const headers = {
-        ...(await getAuthHeaders()),
-        "Content-Type": "application/json",
-      };
-      const payload = {
-        magang_id: magangId,
-        date: form.date,
-        activity: form.activity.trim(),
-        start_time: form.start_time || null,
-        end_time: form.end_time || null,
-        attachment_url: form.attachment_url || null,
-      };
-      const res = await fetch(
-        editingId ? `/api/logbook/${editingId}` : "/api/logbook",
-        {
-          method: editingId ? "PUT" : "POST",
-          headers,
-          body: JSON.stringify(payload),
-        }
-      );
-      if (!res.ok) {
-        const errPayload = await res.json().catch(() => null);
-        throw new Error(errPayload?.message || "Gagal menyimpan logbook");
-      }
-      setIsFormOpen(false);
-      resetForm();
-      await fetchLogbooks(magangId);
-    } catch (err: any) {
-      setError(err.message || "Gagal menyimpan logbook");
     }
   };
 
@@ -252,104 +173,18 @@ export default function SiswaLogbookPage() {
           <p className="text-gray-500 mt-1">Kelola dan pantau status catatan harian magangmu.</p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={openCreate}
+          <Link
+            href="/siswa/logbook/create"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm shadow-sm"
           >
             + Buat Logbook
-          </button>
+          </Link>
         </div>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
           {error}
-        </div>
-      )}
-
-      {isFormOpen && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-gray-900">
-              {editingId ? "Edit Logbook" : "Buat Logbook"}
-            </h3>
-            <button
-              onClick={() => {
-                setIsFormOpen(false);
-                resetForm();
-              }}
-              className="text-gray-500 hover:text-gray-700 text-sm"
-            >
-              Tutup
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Attachment URL</label>
-              <input
-                type="url"
-                placeholder="https://..."
-                value={form.attachment_url}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, attachment_url: e.target.value }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jam Mulai</label>
-              <input
-                type="time"
-                value={form.start_time}
-                onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jam Selesai</label>
-              <input
-                type="time"
-                value={form.end_time}
-                onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kegiatan</label>
-            <textarea
-              value={form.activity}
-              onChange={(e) => setForm((prev) => ({ ...prev, activity: e.target.value }))}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => {
-                setIsFormOpen(false);
-                resetForm();
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-            >
-              Simpan
-            </button>
-          </div>
         </div>
       )}
 
@@ -458,12 +293,12 @@ export default function SiswaLogbookPage() {
                       </svg>
                       <p className="text-lg font-medium text-gray-900">Belum ada logbook</p>
                       <p className="text-gray-500 max-w-sm mt-1">Mulai catat kegiatan magang harianmu sekarang.</p>
-                      <button
-                        onClick={openCreate}
+                      <Link
+                        href="/siswa/logbook/create"
                         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm shadow-sm"
                       >
                         + Buat Logbook Baru
-                      </button>
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -508,12 +343,12 @@ export default function SiswaLogbookPage() {
                     </td>
                     <td className="px-6 py-4 align-top text-right">
                       <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => openEdit(log)}
+                        <Link
+                          href={`/siswa/logbook/${log.id}/edit`}
                           className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                         >
                           Edit
-                        </button>
+                        </Link>
                         {log.status === "draft" && (
                           <button
                             onClick={() => handleSubmit(log.id)}

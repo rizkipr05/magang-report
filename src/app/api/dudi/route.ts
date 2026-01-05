@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiUser, requireGuru } from "@/lib/auth/api";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
 export async function GET(req: Request) {
   const { profile, token } = await getApiUser(req);
@@ -8,7 +8,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = supabaseServer(token);
+  const supabase = supabaseAdmin();
   const url = new URL(req.url);
   const search = url.searchParams.get("search")?.trim();
 
