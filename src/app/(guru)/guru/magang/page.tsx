@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
@@ -26,10 +26,12 @@ type LogbookItem = {
 export default function GuruMagangPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isPending, startTransition] = useTransition();
   const [magangList, setMagangList] = useState<MagangItem[]>([]);
   const [logbooks, setLogbooks] = useState<LogbookItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const deferredSearch = useDeferredValue(search);
 
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
     const { data } = await supabase.auth.getSession();
@@ -93,22 +95,30 @@ export default function GuruMagangPage() {
     return map;
   }, [logbooks]);
 
-  const filteredSiswa = magangList.filter((magang) => {
-    const nama = magang.siswa?.name || "";
-    const nis = magang.siswa?.nis || "";
-    const dudi = magang.dudi?.name || "";
-    const status = (magang.status || "").toLowerCase();
+  const normalizedSearch = useMemo(
+    () => deferredSearch.trim().toLowerCase(),
+    [deferredSearch]
+  );
 
-    const matchesSearch =
-      nama.toLowerCase().includes(search.toLowerCase()) ||
-      nis.toLowerCase().includes(search.toLowerCase()) ||
-      dudi.toLowerCase().includes(search.toLowerCase());
+  const filteredSiswa = useMemo(() => {
+    return magangList.filter((magang) => {
+      const nama = magang.siswa?.name || "";
+      const nis = magang.siswa?.nis || "";
+      const dudi = magang.dudi?.name || "";
+      const status = (magang.status || "").toLowerCase();
 
-    const matchesStatus =
-      filterStatus === "all" || status === filterStatus.toLowerCase();
+      const matchesSearch =
+        !normalizedSearch ||
+        nama.toLowerCase().includes(normalizedSearch) ||
+        nis.toLowerCase().includes(normalizedSearch) ||
+        dudi.toLowerCase().includes(normalizedSearch);
 
-    return matchesSearch && matchesStatus;
-  });
+      const matchesStatus =
+        filterStatus === "all" || status === filterStatus.toLowerCase();
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [magangList, normalizedSearch, filterStatus]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -127,7 +137,7 @@ export default function GuruMagangPage() {
               placeholder="Cari nama siswa, NIS, atau DUDI..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => startTransition(() => setSearch(e.target.value))}
             />
             <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -136,7 +146,7 @@ export default function GuruMagangPage() {
 
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => startTransition(() => setFilterStatus(e.target.value))}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           >
             <option value="all">Semua Status</option>
@@ -144,6 +154,9 @@ export default function GuruMagangPage() {
             <option value="Belum Mulai">Belum Mulai</option>
             <option value="Selesai">Selesai</option>
           </select>
+          {isPending && (
+            <span className="text-xs text-emerald-600">Memfilter...</span>
+          )}
         </div>
       </div>
 

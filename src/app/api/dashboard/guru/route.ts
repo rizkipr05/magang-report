@@ -33,6 +33,20 @@ export async function GET(req: Request) {
     .select("id", { count: "exact", head: true })
     .eq("status", "submitted");
 
+  // 3b) logbook counts for dashboard chart
+  const { count: reviewed_count } = await supabase
+    .from("logbooks")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "reviewed");
+  const { count: submitted_count } = await supabase
+    .from("logbooks")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "submitted");
+  const { count: rejected_count } = await supabase
+    .from("logbooks")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "rejected");
+
   // 4) list terbaru logbook submitted (limit 10) untuk guru review
   const { data: review_queue, error: qErr } = await supabase
     .from("logbooks")
@@ -67,6 +81,11 @@ export async function GET(req: Request) {
           total_magang: total_magang ?? 0,
           magang_aktif: magang_aktif ?? 0,
           pending_review: pending_review ?? 0,
+          logbook_counts: {
+            reviewed: reviewed_count ?? 0,
+            submitted: submitted_count ?? 0,
+            rejected: rejected_count ?? 0,
+          },
         },
         review_queue: fallback ?? [],
       },
@@ -80,6 +99,11 @@ export async function GET(req: Request) {
         total_magang: total_magang ?? 0,
         magang_aktif: magang_aktif ?? 0,
         pending_review: pending_review ?? 0,
+        logbook_counts: {
+          reviewed: reviewed_count ?? 0,
+          submitted: submitted_count ?? 0,
+          rejected: rejected_count ?? 0,
+        },
       },
       review_queue: review_queue ?? [],
     },

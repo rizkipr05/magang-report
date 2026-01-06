@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 type DudiItem = {
@@ -17,9 +17,12 @@ type DudiItem = {
 
 export default function GuruDudiPage() {
   const [search, setSearch] = useState("");
+  const [isPending, startTransition] = useTransition();
   const [dudis, setDudis] = useState<DudiItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const deferredSearch = useDeferredValue(search);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
     const { data } = await supabase.auth.getSession();
@@ -39,6 +42,7 @@ export default function GuruDudiPage() {
       }
       alert("DUDI berhasil dihapus.");
       setDudis((prev) => prev.filter((item) => item.id !== id));
+      setRefreshKey((prev) => prev + 1);
     } catch (err: any) {
       setError(err.message || "Gagal menghapus data DUDI");
     }
@@ -53,7 +57,6 @@ export default function GuruDudiPage() {
         const headers = await getAuthHeaders();
 
         const dudiUrl = new URL("/api/dudi", window.location.origin);
-        if (search) dudiUrl.searchParams.set("search", search);
 
         const dudiRes = await fetch(dudiUrl.toString(), { headers });
 
@@ -91,11 +94,22 @@ export default function GuruDudiPage() {
     return () => {
       active = false;
     };
-  }, [search]);
+  }, [refreshKey]);
 
-  const filteredDudis = dudis.filter((dudi) =>
-    dudi.name.toLowerCase().includes(search.toLowerCase()) ||
-    (dudi.field || "").toLowerCase().includes(search.toLowerCase())
+  const normalizedSearch = useMemo(
+    () => deferredSearch.trim().toLowerCase(),
+    [deferredSearch]
+  );
+
+  const filteredDudis = useMemo(
+    () =>
+      dudis.filter(
+        (dudi) =>
+          !normalizedSearch ||
+          dudi.name.toLowerCase().includes(normalizedSearch) ||
+          (dudi.field || "").toLowerCase().includes(normalizedSearch)
+      ),
+    [dudis, normalizedSearch]
   );
 
   return (
@@ -120,12 +134,15 @@ export default function GuruDudiPage() {
             placeholder="Cari nama DUDI atau bidang usaha..."
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => startTransition(() => setSearch(e.target.value))}
           />
           <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
+        {isPending && (
+          <div className="mt-2 text-xs text-emerald-600">Memfilter...</div>
+        )}
       </div>
 
       {error && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
@@ -27,10 +27,12 @@ export default function SiswaLogbookPage() {
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [page, setPage] = useState(1);
+  const [isPending, startTransition] = useTransition();
   const [logbooks, setLogbooks] = useState<LogbookItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [magangId, setMagangId] = useState<string | null>(null);
+  const deferredSearch = useDeferredValue(searchTerm);
 
   const stats = useMemo(() => {
     const total = logbooks.length;
@@ -40,11 +42,17 @@ export default function SiswaLogbookPage() {
     return { total, draft, submitted, reviewed };
   }, [logbooks]);
 
+  const normalizedSearch = useMemo(
+    () => deferredSearch.trim().toLowerCase(),
+    [deferredSearch]
+  );
+
   const filteredLogbooks = useMemo(() => {
     return logbooks.filter((log) => {
       const matchesSearch =
-        log.activity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.date.includes(searchTerm);
+        !normalizedSearch ||
+        log.activity.toLowerCase().includes(normalizedSearch) ||
+        log.date.includes(normalizedSearch);
       const matchesStatus =
         statusFilter === "Semua" ||
         (statusFilter === "Draft" && log.status === "draft") ||
@@ -53,7 +61,7 @@ export default function SiswaLogbookPage() {
         (statusFilter === "Perbaikan" && log.status === "rejected");
       return matchesSearch && matchesStatus;
     });
-  }, [logbooks, searchTerm, statusFilter]);
+  }, [logbooks, normalizedSearch, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogbooks.length / itemsPerPage));
   const pagedLogbooks = filteredLogbooks.slice(
@@ -162,7 +170,7 @@ export default function SiswaLogbookPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, itemsPerPage]);
+  }, [normalizedSearch, statusFilter, itemsPerPage]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -222,7 +230,7 @@ export default function SiswaLogbookPage() {
               placeholder="Cari kegiatan atau kendala..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => startTransition(() => setSearchTerm(e.target.value))}
             />
             <svg
               className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
@@ -240,7 +248,7 @@ export default function SiswaLogbookPage() {
               <select
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => startTransition(() => setStatusFilter(e.target.value))}
               >
                 <option value="Semua">Semua</option>
                 <option value="Draft">Draft</option>
@@ -255,13 +263,16 @@ export default function SiswaLogbookPage() {
               <select
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                onChange={(e) => startTransition(() => setItemsPerPage(Number(e.target.value)))}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
             </div>
+            {isPending && (
+              <span className="text-xs text-blue-600 whitespace-nowrap">Memfilter...</span>
+            )}
           </div>
         </div>
 

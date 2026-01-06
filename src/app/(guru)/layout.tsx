@@ -64,12 +64,12 @@ export default function GuruLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar menuItems={guruMenuItems} user={userData} />
       <main className="flex-1 ml-64 p-8">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        {children}
+        {loading && (
+          <div className="mt-6 flex items-center gap-2 text-xs text-emerald-600">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Memuat profil...
           </div>
-        ) : (
-          children
         )}
       </main>
     </div>

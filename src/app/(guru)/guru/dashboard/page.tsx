@@ -5,10 +5,6 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useUserProfile } from "@/lib/supabase/hooks";
 
-type LogbookItem = {
-  status?: string | null;
-};
-
 export default function GuruDashboard() {
   const { profile } = useUserProfile();
   const [stats, setStats] = useState({
@@ -71,10 +67,9 @@ export default function GuruDashboard() {
         setError(null);
         const headers = await getAuthHeaders();
 
-        const [dashboardRes, dudiRes, logbookRes] = await Promise.all([
+        const [dashboardRes, dudiRes] = await Promise.all([
           fetch("/api/dashboard/guru", { headers }),
           fetch("/api/dudi", { headers }),
-          fetch("/api/logbook", { headers }),
         ]);
 
         if (!dashboardRes.ok) {
@@ -90,21 +85,11 @@ export default function GuruDashboard() {
           totalDudi = Array.isArray(dudiPayload?.data) ? dudiPayload.data.length : 0;
         }
 
-        let counts = { reviewed: 0, submitted: 0, rejected: 0 };
-        if (logbookRes.ok) {
-          const logbookPayload = await logbookRes.json();
-          const items = Array.isArray(logbookPayload?.data) ? logbookPayload.data : [];
-          counts = items.reduce(
-            (acc: { reviewed: number; submitted: number; rejected: number }, item: LogbookItem) => {
-              const status = (item.status || "").toLowerCase();
-              if (status === "reviewed") acc.reviewed += 1;
-              if (status === "submitted") acc.submitted += 1;
-              if (status === "rejected") acc.rejected += 1;
-              return acc;
-            },
-            { reviewed: 0, submitted: 0, rejected: 0 }
-          );
-        }
+        const counts = dashboardStats.logbook_counts ?? {
+          reviewed: 0,
+          submitted: 0,
+          rejected: 0,
+        };
 
         if (!active) return;
         setStats({
