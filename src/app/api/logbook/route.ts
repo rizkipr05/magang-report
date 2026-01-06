@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiUser } from "@/lib/auth/api";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 
 export async function GET(req: Request) {
   const { profile, token } = await getApiUser(req);
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
-  const supabase = supabaseServer(token);
+  const supabase = supabaseAdmin();
 
   let q = supabase
     .from("logbooks")
@@ -21,15 +21,32 @@ export async function GET(req: Request) {
       `
       id, magang_id, siswa_id, date, activity, start_time, end_time, attachment_url,
       status, guru_note, reviewed_by, reviewed_at, created_at, updated_at,
-      siswa:siswa_id (id, name, email),
-      magang:magang_id (id, status, dudi_id, guru_id),
-      dudi:magang_id ( dudi_id )  -- (abaikan kalau bikin error, join dudi nanti di frontend)
+      siswa:siswa_id (id, name, email)
     `
     )
     .order("date", { ascending: false });
 
-  if (magangId) q = q.eq("magang_id", magangId);
-  if (siswaId) q = q.eq("siswa_id", siswaId);
+  if (profile.role === "siswa") {
+    q = q.eq("siswa_id", profile.id);
+  } else if (profile.role === "guru") {
+    if (magangId) {
+      q = q.eq("magang_id", magangId);
+    } else {
+      const { data: magangRows } = await supabase
+        .from("magang")
+        .select("id")
+        .eq("guru_id", profile.id);
+      const magangIds = Array.isArray(magangRows) ? magangRows.map((row) => row.id) : [];
+      if (magangIds.length === 0) {
+        return NextResponse.json({ data: [] });
+      }
+      q = q.in("magang_id", magangIds);
+    }
+  } else {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  if (siswaId && profile.role === "guru") q = q.eq("siswa_id", siswaId);
   if (status) q = q.eq("status", status);
   if (from) q = q.gte("date", from);
   if (to) q = q.lte("date", to);

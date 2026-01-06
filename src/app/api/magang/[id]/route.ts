@@ -1,36 +1,73 @@
 import { NextResponse } from "next/server";
 import { getApiUser, requireGuru } from "@/lib/auth/api";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = supabaseServer(token);
+  const supabase = supabaseAdmin();
 
-  const { data, error } = await supabase
+  const { data: magang, error } = await supabase
     .from("magang")
     .select(
-      `
-      id, siswa_id, guru_id, dudi_id, start_date, end_date, status, created_at, updated_at,
-      dudi:dudi_id (id, name, address, bidang),
-      siswa:siswa_id (id, name, email, role, nis, kelas, jurusan),
-      guru:guru_id (id, name, email, role)
-    `
+      "id, siswa_id, guru_id, dudi_id, start_date, end_date, status, created_at, updated_at"
     )
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
-  if (error) return NextResponse.json({ message: error.message }, { status: 404 });
+  if (error || !magang) {
+    return NextResponse.json({ message: error?.message || "Data tidak ditemukan" }, { status: 404 });
+  }
 
-  return NextResponse.json({ data });
+  if (profile.role === "siswa" && magang.siswa_id !== profile.id) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+  if (profile.role === "guru" && magang.guru_id && magang.guru_id !== profile.id) {
+    if (magang.status !== "pending") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  const [siswaRes, dudiRes] = await Promise.all([
+    magang.siswa_id
+      ? supabase
+          .from("users")
+          .select("id,name,email,role,nis,kelas,jurusan")
+          .eq("id", magang.siswa_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    magang.dudi_id
+      ? supabase
+          .from("dudi")
+          .select("id,name,address,bidang")
+          .eq("id", magang.dudi_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  return NextResponse.json({
+    data: {
+      ...magang,
+      siswa: siswaRes.data ?? null,
+      dudi: dudiRes.data ?? null,
+    },
+  });
 }
 
 export async function PUT(req: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -52,7 +89,7 @@ export async function PUT(req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("magang")
     .update(patch)
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -62,6 +99,10 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(req: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -72,7 +113,7 @@ export async function DELETE(req: Request, { params }: Params) {
 
   const supabase = supabaseServer(token);
 
-  const { error } = await supabase.from("magang").delete().eq("id", params.id);
+  const { error } = await supabase.from("magang").delete().eq("id", id);
 
   if (error) return NextResponse.json({ message: error.message }, { status: 400 });
 

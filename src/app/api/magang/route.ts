@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiUser, requireGuru } from "@/lib/auth/api";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
 export async function GET(req: Request) {
   const { profile, token } = await getApiUser(req);
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const dudiId = url.searchParams.get("dudiId");
   const status = url.searchParams.get("status");
 
-  const supabase = supabaseServer(token);
+  const supabase = supabaseAdmin();
 
   let q = supabase
     .from("magang")
@@ -21,11 +21,16 @@ export async function GET(req: Request) {
       `
       id, siswa_id, guru_id, dudi_id, start_date, end_date, status, created_at, updated_at,
       dudi:dudi_id (id, name, bidang),
-      siswa:siswa_id (id, name, email, role, nis, kelas, jurusan),
-      guru:guru_id (id, name, email, role)
+      siswa:siswa_id (id, name, email, role, nis, kelas, jurusan)
     `
     )
     .order("created_at", { ascending: false });
+
+  if (profile.role === "guru") {
+    q = q.or(`guru_id.eq.${profile.id},status.eq.pending`);
+  } else if (profile.role === "siswa") {
+    q = q.eq("siswa_id", profile.id);
+  }
 
   // filter optional
   if (siswaId) q = q.eq("siswa_id", siswaId);
@@ -36,9 +41,9 @@ export async function GET(req: Request) {
 
   if (error) return NextResponse.json({ message: error.message }, { status: 400 });
 
-  // RLS akan otomatis membatasi:
+  // Filter dibatasi di server:
   // - siswa hanya lihat miliknya
-  // - guru hanya lihat bimbingannya
+  // - guru lihat bimbingan + status pending
   return NextResponse.json({ data });
 }
 

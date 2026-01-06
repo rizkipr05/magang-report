@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useDudiList } from "@/lib/supabase/hooks";
 
 export default function DudiPage() {
@@ -116,9 +117,12 @@ export default function DudiPage() {
 
                 {/* Footer Actions */}
                 <div className="p-4 border-t border-gray-100 flex gap-3">
-                  <button className="flex-1 py-2 px-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                  <Link
+                    href={`/siswa/dudi/detail/${dudi.id}`}
+                    className="flex-1 py-2 px-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-center"
+                  >
                     Detail
-                  </button>
+                  </Link>
                   {dudi.is_applied ? (
                     <button disabled className="flex-1 py-2 px-3 text-sm font-medium text-green-700 bg-green-100 rounded-lg cursor-default border border-green-200">
                       ✔ Sudah Mendaftar
@@ -128,9 +132,12 @@ export default function DudiPage() {
                       Penuh
                     </button>
                   ) : (
-                    <button className="flex-1 py-2 px-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
+                    <Link
+                      href={`/siswa/dudi/daftar/${dudi.id}`}
+                      className="flex-1 py-2 px-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200 text-center"
+                    >
                       → Daftar
-                    </button>
+                    </Link>
                   )}
                 </div>
               </div>

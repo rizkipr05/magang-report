@@ -24,7 +24,8 @@ type LogbookItem = {
 
 export default function GuruMagangDetailPage() {
   const params = useParams<{ id: string }>();
-  const magangId = params?.id;
+  const rawId = params?.id;
+  const magangId = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const [detail, setDetail] = useState<MagangDetail | null>(null);
   const [logbooks, setLogbooks] = useState<LogbookItem[]>([]);
@@ -41,7 +42,11 @@ export default function GuruMagangDetailPage() {
     let active = true;
     const fetchDetail = async () => {
       try {
-        if (!magangId) return;
+        if (!magangId || magangId === "undefined") {
+          setError("ID magang tidak valid.");
+          setLoading(false);
+          return;
+        }
         setLoading(true);
         setError(null);
         const headers = await getAuthHeaders();

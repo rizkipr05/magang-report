@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { getApiUser, requireGuru } from "@/lib/auth/api";
 import { supabaseServer } from "@/lib/supabase/server";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -14,8 +18,8 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data, error } = await supabase
     .from("dudi")
-    .select("id,name,address,bidang,contact_name,contact_phone,created_at,updated_at")
-    .eq("id", params.id)
+    .select("id,name,address,bidang,contact_name,contact_phone,description,photo_url,created_at,updated_at")
+    .eq("id", id)
     .single();
 
   if (error) return NextResponse.json({ message: error.message }, { status: 404 });
@@ -24,6 +28,10 @@ export async function GET(req: Request, { params }: Params) {
 }
 
 export async function PUT(req: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -54,7 +62,7 @@ export async function PUT(req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("dudi")
     .update(patch)
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -64,6 +72,10 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(req: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -74,7 +86,7 @@ export async function DELETE(req: Request, { params }: Params) {
 
   const supabase = supabaseServer(token);
 
-  const { error } = await supabase.from("dudi").delete().eq("id", params.id);
+  const { error } = await supabase.from("dudi").delete().eq("id", id);
 
   if (error) return NextResponse.json({ message: error.message }, { status: 400 });
 
