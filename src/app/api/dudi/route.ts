@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiUser, requireGuru } from "@/lib/auth/api";
-import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 
 export async function GET(req: Request) {
   const { profile, token } = await getApiUser(req);
@@ -25,7 +25,40 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ data });
+  const items = Array.isArray(data) ? data : [];
+  if (items.length === 0) {
+    return NextResponse.json({ data: items });
+  }
+
+  const dudiIds = items.map((item: any) => item.id).filter(Boolean);
+  let magangRows: { dudi_id?: string | null; siswa_id?: string | null }[] = [];
+
+  if (dudiIds.length > 0) {
+    const { data: magangData } = await supabase
+      .from("magang")
+      .select("dudi_id, siswa_id")
+      .in("dudi_id", dudiIds);
+    magangRows = Array.isArray(magangData) ? magangData : [];
+  }
+
+  const filledMap = new Map<string, number>();
+  const appliedSet = new Set<string>();
+  for (const row of magangRows) {
+    if (row?.dudi_id) {
+      filledMap.set(row.dudi_id, (filledMap.get(row.dudi_id) ?? 0) + 1);
+    }
+    if (row?.dudi_id && row?.siswa_id && row.siswa_id === profile.id) {
+      appliedSet.add(row.dudi_id);
+    }
+  }
+
+  const enriched = items.map((item: any) => ({
+    ...item,
+    quota_filled: filledMap.get(item.id) ?? item.quota_filled ?? 0,
+    is_applied: appliedSet.has(item.id) || item.is_applied || false,
+  }));
+
+  return NextResponse.json({ data: enriched });
 }
 
 export async function POST(req: Request) {
@@ -44,16 +77,18 @@ export async function POST(req: Request) {
   const bidang = body?.bidang?.toString().trim() ?? null;
   const contact_name = body?.contact_name?.toString().trim() ?? null;
   const contact_phone = body?.contact_phone?.toString().trim() ?? null;
+  const description = body?.description?.toString().trim() ?? null;
+  const photo_url = body?.photo_url?.toString().trim() ?? null;
 
   if (!name) {
     return NextResponse.json({ message: "name wajib diisi" }, { status: 400 });
   }
 
-  const supabase = supabaseServer(token);
+  const supabase = supabaseAdmin();
 
   const { data, error } = await supabase
     .from("dudi")
-    .insert([{ name, address, bidang, contact_name, contact_phone }])
+    .insert([{ name, address, bidang, contact_name, contact_phone, description, photo_url }])
     .select()
     .single();
 

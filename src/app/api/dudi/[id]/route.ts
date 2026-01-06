@@ -40,6 +40,10 @@ export async function PUT(req: Request, { params }: Params) {
   if (body?.bidang !== undefined) patch.bidang = body.bidang ? String(body.bidang).trim() : null;
   if (body?.contact_name !== undefined) patch.contact_name = body.contact_name ? String(body.contact_name).trim() : null;
   if (body?.contact_phone !== undefined) patch.contact_phone = body.contact_phone ? String(body.contact_phone).trim() : null;
+  if (body?.description !== undefined)
+    patch.description = body.description ? String(body.description).trim() : null;
+  if (body?.photo_url !== undefined)
+    patch.photo_url = body.photo_url ? String(body.photo_url).trim() : null;
 
   if (patch.name !== undefined && !patch.name) {
     return NextResponse.json({ message: "name tidak boleh kosong" }, { status: 400 });
