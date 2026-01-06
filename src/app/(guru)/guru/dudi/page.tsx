@@ -27,6 +27,23 @@ export default function GuruDudiPage() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Hapus data DUDI ini?")) return;
+    try {
+      setError(null);
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/dudi/${id}`, { method: "DELETE", headers });
+      if (!res.ok) {
+        const payloadErr = await res.json().catch(() => null);
+        throw new Error(payloadErr?.message || "Gagal menghapus data DUDI");
+      }
+      alert("DUDI berhasil dihapus.");
+      setDudis((prev) => prev.filter((item) => item.id !== id));
+    } catch (err: any) {
+      setError(err.message || "Gagal menghapus data DUDI");
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const fetchData = async () => {
@@ -144,12 +161,20 @@ export default function GuruDudiPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="text-lg font-bold text-gray-900">{dudi.name}</h3>
-                        <Link
-                          href={`/guru/dudi/edit/${dudi.id}`}
-                          className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
-                        >
-                          Edit
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/guru/dudi/edit/${dudi.id}`}
+                            className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(dudi.id)}
+                            className="text-sm font-medium text-red-600 hover:text-red-700"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </div>
                       <p className="text-sm text-emerald-600 font-medium mb-2">{dudi.field || "-"}</p>
 
