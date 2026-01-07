@@ -37,10 +37,9 @@ export async function GET(req: Request) {
         .select("id")
         .eq("guru_id", profile.id);
       const magangIds = Array.isArray(magangRows) ? magangRows.map((row) => row.id) : [];
-      if (magangIds.length === 0) {
-        return NextResponse.json({ data: [] });
+      if (magangIds.length > 0) {
+        q = q.in("magang_id", magangIds);
       }
-      q = q.in("magang_id", magangIds);
     }
   } else {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -84,7 +83,20 @@ export async function POST(req: Request) {
     );
   }
 
-  const supabase = supabaseServer(token);
+  const supabase = supabaseAdmin();
+
+  const { data: magangRow, error: magangErr } = await supabase
+    .from("magang")
+    .select("id, siswa_id")
+    .eq("id", magang_id)
+    .single();
+
+  if (magangErr || !magangRow || magangRow.siswa_id !== profile.id) {
+    return NextResponse.json(
+      { message: "Magang tidak ditemukan atau bukan milik Anda." },
+      { status: 403 }
+    );
+  }
 
   const { data, error } = await supabase
     .from("logbooks")
