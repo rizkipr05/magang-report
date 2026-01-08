@@ -5,6 +5,15 @@ import { supabaseServer } from "@/lib/supabase/server";
 type Params = { params: { id: string } };
 
 export async function POST(req: Request, { params }: Params) {
+  const resolvedParams = await Promise.resolve(params as any);
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const fallbackId = pathParts.length >= 2 ? pathParts[pathParts.length - 2] : "";
+  const logbookId = resolvedParams?.id || fallbackId;
+  if (!logbookId || logbookId === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
+
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -17,7 +26,7 @@ export async function POST(req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("logbooks")
     .update({ status: "submitted" })
-    .eq("id", params.id)
+    .eq("id", logbookId)
     .select()
     .single();
 

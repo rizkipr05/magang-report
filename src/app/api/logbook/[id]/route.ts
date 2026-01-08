@@ -5,6 +5,14 @@ import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 type Params = { params: { id: string } };
 
 export async function GET(req: Request, { params }: Params) {
+  const resolvedParams = await Promise.resolve(params as any);
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const logbookId = resolvedParams?.id || pathParts[pathParts.length - 1];
+  if (!logbookId || logbookId === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
+
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -14,7 +22,7 @@ export async function GET(req: Request, { params }: Params) {
     .select(
       "id,magang_id,siswa_id,date,activity,start_time,end_time,attachment_url,status,guru_note,reviewed_by,reviewed_at,created_at,updated_at"
     )
-    .eq("id", params.id)
+    .eq("id", logbookId)
     .single();
 
   if (error) return NextResponse.json({ message: error.message }, { status: 404 });
@@ -38,6 +46,14 @@ export async function GET(req: Request, { params }: Params) {
 }
 
 export async function PUT(req: Request, { params }: Params) {
+  const resolvedParams = await Promise.resolve(params as any);
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const logbookId = resolvedParams?.id || pathParts[pathParts.length - 1];
+  if (!logbookId || logbookId === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
+
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -73,7 +89,7 @@ export async function PUT(req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("logbooks")
     .update(patch)
-    .eq("id", params.id)
+    .eq("id", logbookId)
     .select()
     .single();
 
@@ -83,6 +99,14 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(req: Request, { params }: Params) {
+  const resolvedParams = await Promise.resolve(params as any);
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const logbookId = resolvedParams?.id || pathParts[pathParts.length - 1];
+  if (!logbookId || logbookId === "undefined") {
+    return NextResponse.json({ message: "Invalid id" }, { status: 400 });
+  }
+
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -93,7 +117,7 @@ export async function DELETE(req: Request, { params }: Params) {
 
   const supabase = supabaseServer(token);
 
-  const { error } = await supabase.from("logbooks").delete().eq("id", params.id);
+  const { error } = await supabase.from("logbooks").delete().eq("id", logbookId);
 
   if (error) return NextResponse.json({ message: error.message }, { status: 400 });
 

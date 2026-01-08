@@ -111,7 +111,8 @@ export default function SiswaLogbookPage() {
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`/api/logbook/${id}`, { method: "DELETE", headers });
-      if (!res.ok) throw new Error("Gagal menghapus logbook");
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.message || "Gagal menghapus logbook");
       await fetchLogbooks(magangId);
     } catch (err: any) {
       setError(err.message || "Gagal menghapus logbook");
@@ -125,7 +126,8 @@ export default function SiswaLogbookPage() {
         method: "POST",
         headers,
       });
-      if (!res.ok) throw new Error("Gagal mengirim logbook");
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.message || "Gagal mengirim logbook");
       await fetchLogbooks(magangId);
     } catch (err: any) {
       setError(err.message || "Gagal mengirim logbook");
@@ -368,12 +370,14 @@ export default function SiswaLogbookPage() {
                             Kirim
                           </button>
                         )}
-                        <button
-                          onClick={() => handleDelete(log.id)}
-                          className="text-red-600 hover:text-red-700 font-medium text-sm"
-                        >
-                          Hapus
-                        </button>
+                        {log.status === "draft" && (
+                          <button
+                            onClick={() => handleDelete(log.id)}
+                            className="text-red-600 hover:text-red-700 font-medium text-sm"
+                          >
+                            Hapus
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
