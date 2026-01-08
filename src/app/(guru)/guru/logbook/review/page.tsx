@@ -74,12 +74,15 @@ export default function GuruLogbookReviewPage() {
                 ...(await getAuthHeaders()),
                 "Content-Type": "application/json",
             };
-            const res = await fetch(`/api/logbook/${logbookId}`, {
-                method: "PUT",
+            const res = await fetch(`/api/logbook/${logbookId}/review`, {
+                method: "POST",
                 headers,
                 body: JSON.stringify({ status: reviewStatus, guru_note: reviewNote }),
             });
-            if (!res.ok) throw new Error("Gagal menyimpan review");
+            const payload = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(payload?.message || "Gagal menyimpan review");
+            }
             setSuccess("Review berhasil disimpan.");
             await fetchLogbook();
         } catch (err: any) {
