@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   if (userErr || !userRow) {
     return NextResponse.json(
-      { message: "User profile belum ada di tabel users. Buat row user dulu." },
+      { message: "User profile belum ada silahkan registrasi terlebih dahulu" },
       { status: 400 }
     );
   }
