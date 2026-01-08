@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiUser } from "@/lib/auth/api";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
 type Params = { params: { id: string } };
 
@@ -8,8 +8,7 @@ export async function GET(req: Request, { params }: Params) {
   const { profile, token } = await getApiUser(req);
   if (!profile || !token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const supabase = supabaseServer(token);
-
+  const supabase = supabaseAdmin();
   const { data, error } = await supabase
     .from("logbooks")
     .select(
@@ -19,6 +18,21 @@ export async function GET(req: Request, { params }: Params) {
     .single();
 
   if (error) return NextResponse.json({ message: error.message }, { status: 404 });
+
+  if (profile.role === "siswa" && data?.siswa_id !== profile.id) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  if (profile.role === "guru") {
+    const { data: magangRows } = await supabase
+      .from("magang")
+      .select("id")
+      .eq("guru_id", profile.id);
+    const magangIds = Array.isArray(magangRows) ? magangRows.map((row) => row.id) : [];
+    if (magangIds.length > 0 && !magangIds.includes(data?.magang_id)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+  }
 
   return NextResponse.json({ data });
 }

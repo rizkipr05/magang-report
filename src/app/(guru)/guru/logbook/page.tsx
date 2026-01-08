@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
 type LogbookItem = {
@@ -30,9 +31,6 @@ export default function GuruLogbookPage() {
     const [logbooks, setLogbooks] = useState<LogbookItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [reviewingId, setReviewingId] = useState<string | null>(null);
-    const [reviewStatus, setReviewStatus] = useState("reviewed");
-    const [reviewNote, setReviewNote] = useState("");
 
     const stats = useMemo(() => {
         const total = logbooks.length;
@@ -87,33 +85,6 @@ export default function GuruLogbookPage() {
         }
     };
 
-    const openReview = (log: LogbookItem) => {
-        setReviewingId(log.id);
-        setReviewStatus(log.status === "rejected" ? "rejected" : "reviewed");
-        setReviewNote(log.guru_note || "");
-    };
-
-    const handleReviewSave = async () => {
-        if (!reviewingId) return;
-        try {
-            const headers = {
-                ...(await getAuthHeaders()),
-                "Content-Type": "application/json",
-            };
-            const res = await fetch(`/api/logbook/${reviewingId}`, {
-                method: "PUT",
-                headers,
-                body: JSON.stringify({ status: reviewStatus, guru_note: reviewNote }),
-            });
-            if (!res.ok) throw new Error("Gagal menyimpan review");
-            setReviewingId(null);
-            setReviewNote("");
-            await fetchLogbooks();
-        } catch (err: any) {
-            setError(err.message || "Gagal menyimpan review");
-        }
-    };
-
     useEffect(() => {
         fetchLogbooks();
     }, []);
@@ -153,54 +124,6 @@ export default function GuruLogbookPage() {
         {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
                 {error}
-            </div>
-        )}
-
-        {reviewingId && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-gray-900">Review Logbook</h3>
-                    <button
-                        onClick={() => setReviewingId(null)}
-                        className="text-gray-500 hover:text-gray-700 text-sm"
-                    >
-                        Tutup
-                    </button>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={reviewStatus}
-                        onChange={(e) => setReviewStatus(e.target.value)}
-                    >
-                        <option value="reviewed">Terverifikasi</option>
-                        <option value="rejected">Perlu Perbaikan</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Guru</label>
-                    <textarea
-                        rows={4}
-                        value={reviewNote}
-                        onChange={(e) => setReviewNote(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                <div className="flex justify-end gap-3">
-                    <button
-                        onClick={() => setReviewingId(null)}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
-                    >
-                        Batal
-                    </button>
-                    <button
-                        onClick={handleReviewSave}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
-                    >
-                        Simpan Review
-                    </button>
-                </div>
             </div>
         )}
 
@@ -360,12 +283,12 @@ export default function GuruLogbookPage() {
                                         </td>
                                         <td className="px-6 py-4 align-top text-right">
                                             <div className="flex justify-end gap-3">
-                                                <button
-                                                    onClick={() => openReview(log)}
+                                                <Link
+                                                    href={`/guru/logbook/review?id=${log.id}`}
                                                     className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                                                 >
                                                     Review
-                                                </button>
+                                                </Link>
                                             </div>
                                         </td>
                                     </tr>

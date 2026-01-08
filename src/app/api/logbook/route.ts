@@ -8,6 +8,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const magangId = url.searchParams.get("magangId");
+  const logbookId = url.searchParams.get("id");
   const siswaId = url.searchParams.get("siswaId");
   const status = url.searchParams.get("status");
   const from = url.searchParams.get("from");
@@ -46,6 +47,7 @@ export async function GET(req: Request) {
   }
 
   if (siswaId && profile.role === "guru") q = q.eq("siswa_id", siswaId);
+  if (logbookId) q = q.eq("id", logbookId);
   if (status) q = q.eq("status", status);
   if (from) q = q.gte("date", from);
   if (to) q = q.lte("date", to);
